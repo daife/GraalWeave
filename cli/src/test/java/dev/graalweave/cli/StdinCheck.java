@@ -13,7 +13,9 @@ import java.util.concurrent.*;
 public final class StdinCheck {
     public static void main(String[] args) throws Exception {
         Path instance = Files.createTempDirectory("GraalWeave stdin 中文 ");
-        PythonEnvironment.initialize(instance);
+        System.out.println("Integration environment: " + instance);
+        if (args.length == 0) PythonEnvironment.initialize(instance);
+        else preparePackaged(instance, Path.of(args[0]));
         var game = new GameAccess() {
             public boolean isMainThread() { return true; }
             public void execute(Runnable action) { action.run(); }
@@ -45,10 +47,59 @@ public final class StdinCheck {
         System.out.println("PASS: stdin UTF-8/BOM, quotes, multiline, argv, input EOF, session, exit status, traceback");
     }
 
+    private static void preparePackaged(Path instance, Path mod) throws Exception {
+        Path directory = instance.resolve("graalweave");
+        try (var jar = FileSystems.newFileSystem(mod)) {
+            Path libraries = jar.getPath("/META-INF/jars");
+            InstanceInstallation.prepare(instance, libraries);
+            Path ready = directory.resolve("python/venv/.graalweave-ready");
+            var created = Files.getLastModifiedTime(ready);
+            Path userScript = directory.resolve("workspace/task.py");
+            Files.writeString(userScript, "print('keep me')\n");
+            Path settings = directory.resolve("mcp-settings.json");
+            Files.writeString(settings, "{\"cwd\":\"workspace\"}\n");
+            Path stale = directory.resolve("client/lib/obsolete-runtime.jar");
+            Files.writeString(stale, "old runtime");
+            Path oldLib = Files.createDirectories(directory.resolve("python/lib"));
+            Files.writeString(oldLib.resolve("old.jar"), "old runtime");
+            InstanceInstallation.prepare(instance, libraries);
+            if (Files.exists(stale) || Files.exists(oldLib)
+                    || !Files.readString(userScript).equals("print('keep me')\n")
+                    || !Files.readString(settings).equals("{\"cwd\":\"workspace\"}\n")
+                    || !Files.getLastModifiedTime(ready).equals(created))
+                throw new AssertionError("upgrade must preserve user files and venv, and remove old libraries");
+        }
+        Path output = instance.resolve("launcher.txt");
+        var launcher = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+                "& $env:GRAALWEAVE_TEST_LAUNCHER --help; exit $LASTEXITCODE");
+        launcher.environment().put("GRAALWEAVE_TEST_LAUNCHER", directory.resolve("client/bin/graalweave.bat").toString());
+        launcher.environment().put("JAVA_HOME", "invalid-path-for-test");
+        var process = launcher.redirectErrorStream(true).redirectOutput(output.toFile()).start();
+        if (!process.waitFor(30, TimeUnit.SECONDS) || process.exitValue() != 0
+                || !Files.readString(output).contains("env pip") || Files.readString(output).contains("env init"))
+            throw new AssertionError("extracted launcher failed: " + Files.readString(output));
+        System.out.println("PASS: packaged JAR bootstrap, offline venv, repeat startup, old library cleanup, standalone launcher");
+    }
+
+    private static ArrayList<String> command(Path instance) throws IOException {
+        Path config = instance.resolve("graalweave/mcp.json");
+        if (Files.exists(config)) {
+            JsonObject server = JsonParser.parseString(Files.readString(config)).getAsJsonObject()
+                    .getAsJsonObject("mcpServers").getAsJsonObject("graalweave");
+            var command = new ArrayList<String>();
+            command.add(server.get("command").getAsString());
+            server.getAsJsonArray("args").forEach(arg -> command.add(arg.getAsString()));
+            if (!command.removeLast().equals("mcp")) throw new AssertionError("MCP entry point");
+            return command;
+        }
+        return new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin/java.exe").toString(),
+                "--enable-native-access=ALL-UNNAMED", "-Dfile.encoding=UTF-8", "-cp", System.getProperty("java.class.path"),
+                Main.class.getName(), "--instance", instance.toString()));
+    }
+
     private static void checkMcp(Path instance, RuntimeService runtime) throws Exception {
-        var command = List.of(Path.of(System.getProperty("java.home"), "bin/java.exe").toString(),
-                "--enable-native-access=ALL-UNNAMED", "-cp", System.getProperty("java.class.path"),
-                Main.class.getName(), "--instance", instance.toString(), "mcp");
+        var command = command(instance);
+        command.add("mcp");
         var process = new ProcessBuilder(command).redirectError(instance.resolve("mcp-stderr.txt").toFile()).start();
         try (var writer = new PrintWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8), true);
              var reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
@@ -128,9 +179,7 @@ public final class StdinCheck {
     }
 
     private static void check(Path instance, List<String> args, String source, int status, String stdout, String stderr) throws Exception {
-        var command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin/java.exe").toString(),
-                "--enable-native-access=ALL-UNNAMED", "-Dfile.encoding=UTF-8", "-cp", System.getProperty("java.class.path"),
-                Main.class.getName(), "--instance", instance.toString()));
+        var command = command(instance);
         command.addAll(args);
         Path out = instance.resolve("stdout.txt"), err = instance.resolve("stderr.txt");
         var process = new ProcessBuilder(command).redirectOutput(out.toFile()).redirectError(err.toFile()).start();

@@ -43,7 +43,7 @@ public final class Main {
                           repl
                           mcp
                           close NAME | reset NAME | interrupt NAME
-                          env init | env pip [ARGS...] | env rebuild
+                          env pip [ARGS...] | env rebuild
                         Options precede COMMAND. Scripts run in the Minecraft process.
                         run - (or -) reads UTF-8 source from stdin; input() then receives EOF.
                         """);
@@ -109,19 +109,14 @@ public final class Main {
     }
 
     private int environment(List<String> args) throws Exception {
-        String op = args.isEmpty() ? "init" : args.removeFirst();
+        String op = take(args, "pip or rebuild");
         switch (op) {
-            case "init" -> PythonEnvironment.initialize(instance);
             case "pip" -> { return PythonEnvironment.pip(instance, args); }
             case "rebuild" -> {
                 Path discovery = instance.resolve("graalweave/connection.json");
                 if (Files.exists(discovery)) throw new IllegalStateException("Stop Minecraft before rebuilding its Python environment");
                 Path venv = PythonEnvironment.root(instance).resolve("venv");
-                if (Files.exists(venv)) {
-                    try (var paths = Files.walk(venv)) {
-                        for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(path);
-                    }
-                }
+                InstanceInstallation.recycle(venv);
                 PythonEnvironment.initialize(instance);
             }
             default -> throw new IllegalArgumentException("Unknown env command: " + op);

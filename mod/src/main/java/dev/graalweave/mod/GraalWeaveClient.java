@@ -16,6 +16,13 @@ public final class GraalWeaveClient implements ClientModInitializer {
     private ProtocolServer server;
 
     @Override public void onInitializeClient() {
+        var loader = FabricLoader.getInstance();
+        LOG.info("Preparing GraalWeave Python environment and local tools...");
+        try {
+            InstanceInstallation.prepare(loader.getGameDir(), loader.getModContainer("graalweave").orElseThrow()
+                    .findPath("META-INF/jars").orElseThrow());
+        } catch (java.io.IOException e) { throw new IllegalStateException("Cannot prepare GraalWeave", e); }
+        LOG.info("GraalWeave ready; MCP config: {}/graalweave/mcp.json", loader.getGameDir());
         runtime = new RuntimeService(FabricLoader.getInstance().getGameDir(), new GameAccess() {
             @Override public boolean isMainThread() { return Minecraft.getInstance().isSameThread(); }
             @Override public void execute(Runnable action) { Minecraft.getInstance().execute(action); }

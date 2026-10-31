@@ -1,26 +1,32 @@
 # 验证记录
 
+## 2026-10-31：单 JAR 自动安装
+
+核心集成检查与 `:cli:installationIntegration` 通过。后者直接读取发布 JAR 中的嵌套依赖，在包含中文和空格的临时实例中初始化真实 GraalPy 环境；验证再次启动保留 venv、用户脚本和 MCP 工作目录设置，旧依赖移入回收站，释放的 Windows 终端入口在无有效 `JAVA_HOME` 时仍可启动。
+
+使用生成的 `mcp.json` 中的实际 Java 命令和释放的依赖运行 CLI/MCP 子进程，验证 UTF-8 标准输入、会话保留、脚本执行、MCP 工具发现、工作目录持久化、错误返回与取消后复用。模组初始化接线与 `:mod:build` 构建通过；本次未启动 Minecraft 实机验证。
+
 ## 2026-10-30：cwd 初始化与模块复用
 
-真实 GraalPy 核心检查通过：cwd 相邻模块导入、初始化名称保留、每会话只运行一次、切换 cwd 不重跑、reset 重新初始化、初始化失败终止请求且不自动重试。`gradlew.bat :core:integration :cli:integration offlineZip` 全部通过。本次未重启 Minecraft 实机验证。
+真实 GraalPy 核心检查通过：cwd 相邻模块导入、初始化名称保留、每会话只运行一次、切换 cwd 不重跑、reset 重新初始化、初始化失败终止请求且不自动重试。`gradlew.bat :core:integration :cli:integration :mod:build` 全部通过。本次未重启 Minecraft 实机验证。
 
 以下为 2026-10-29 Windows x64 的历史验证记录。
 
 ## 自动启动脚本
 
-`gradlew.bat :core:integration offlineZip` 通过。新增集成检查使用真实 GraalPy 验证启动脚本按文件名顺序执行、独立常驻会话、相邻子包导入、主线程调用、tick 等待、stdin EOF、失败后继续、停用文件跳过，以及脚本结束后 `join` 事件订阅仍可运行。Fabric 启动事件接线已编译通过；尚未重启实际 Minecraft 实例验证自动启动。
+`gradlew.bat :core:integration :mod:build` 通过。新增集成检查使用真实 GraalPy 验证启动脚本按文件名顺序执行、独立常驻会话、相邻子包导入、主线程调用、tick 等待、stdin EOF、失败后继续、停用文件跳过，以及脚本结束后 `join` 事件订阅仍可运行。Fabric 启动事件接线已编译通过；尚未重启实际 Minecraft 实例验证自动启动。
 
 ## 自动类型转换与内置 MCP
 
 通过真实 GraalPy 验证 Java 整数泛型字段写入、继承泛型解析、列表元素转换、静态字段、`setattr`、增量和解包赋值、动态 `exec`、导入脚本，以及普通 Python 属性行为。浮点参数允许单精度舍入；整数越界、非整数小数、错误类型、浮点越界和无法解析的泛型在写入前报错，并保持字段原值。原有 REPL 多行、回溯、跨线程调用与中断复用检查继续保留。
 
-CLI 子进程通过实际 stdio MCP 和游戏连接验证单工具发现、UTF-8 多行代码、中文脚本路径、参数、默认会话保留、`input()` EOF、脚本失败、参数冲突、运行期间 ping、取消及取消后的会话复用。MCP 不依赖 PowerShell；安装器生成直接启动 Java 的配置，并支持 `-Codex` 注册。
+CLI 子进程通过实际 stdio MCP 和游戏连接验证单工具发现、UTF-8 多行代码、中文脚本路径、参数、默认会话保留、`input()` EOF、脚本失败、参数冲突、运行期间 ping、取消及取消后的会话复用。MCP 使用直接 Java stdio 入口；当前配置由模组启动时生成，Agent 工具由用户自行配置。
 
 这些检查使用模拟游戏线程，尚未对这次修改后的 Mod 做 Minecraft 实机试玩。
 
 ## Agent 接口精简
 
-`gradlew.bat :core:integration`、`gradlew.bat :cli:integration`、`gradlew.bat offlineZip` 通过。
+`gradlew.bat :core:integration`、`gradlew.bat :cli:integration`、`gradlew.bat :mod:build` 通过。
 
 核心检查使用真实 GraalPy 验证精简/完整查询、精确匹配、重载与分页、类扫描不初始化，以及 `brief` 的浮点数展示、原数据保留和 Java 对象短类名。CLI 检查通过独立子进程、实际协议与解释器验证 UTF-8/BOM、多行源码、中文、引号、反斜线、argv、命名会话、stdin EOF、退出码及 `<stdin>` 回溯；不创建交互终端。CLI stdout/stderr 固定 UTF-8，避免 Windows 默认编码损坏中文回溯。
 
@@ -30,7 +36,7 @@ CLI 子进程通过实际 stdio MCP 和游戏连接验证单工具发现、UTF-8
 
 ## API Explorer 增补验证
 
-`gradlew.bat :core:integration offlineZip` 通过。通过真实 GraalPy 验证 Mod 元数据、JAR 文件系统根路径、Mod/包过滤、非公开类和未导出模块包过滤、JDK 类发现、分页、完整重载与参数类型、继承成员、Java 类型和对象查询。带静态初始化标记的类在搜索和成员查询后未初始化。250 项属性补全全部保留，类名补全可返回直接使用的 `java.type(...)` 表达式。
+`gradlew.bat :core:integration :mod:build` 通过。通过真实 GraalPy 验证 Mod 元数据、JAR 文件系统根路径、Mod/包过滤、非公开类和未导出模块包过滤、JDK 类发现、分页、完整重载与参数类型、继承成员、Java 类型和对象查询。带静态初始化标记的类在搜索和成员查询后未初始化。250 项属性补全全部保留，类名补全可返回直接使用的 `java.type(...)` 表达式。
 
 此增补使用模拟游戏线程验证，未重新启动 Minecraft 实例。
 
@@ -46,7 +52,7 @@ CLI 子进程通过实际 stdio MCP 和游戏连接验证单工具发现、UTF-8
 
 Java 25 / Oracle GraalVM 25.4.4.1.1，Gradle 9.8.2，Loom 1.19.3。
 
-`gradlew.bat offlineZip :core:integration`：通过。
+`gradlew.bat :mod:build :core:integration`：通过。
 
 GraalPy 实际报告 Python 3.13.14。离线环境使用随依赖发布的 Windows 原生启动器和 ensurepip；初始化设置 PIP_NO_INDEX 与禁用远程补丁库，不在初始化过程中安装远程包。
 

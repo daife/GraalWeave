@@ -7,7 +7,7 @@
 Java 数值参数和字段按目标类型转换。字段赋值在写入前校验，包括泛型 `Setting<Integer>.value`；无法转换或无法解析泛型时抛出 `TypeError`，不修改字段。无需自行给 Python 整数套 Java 包装类型。Java 对象仍可直接交给其他 API。
 
 1. 用 `status` 确认游戏运行、实例正确和 Python 版本。
-2. 用 `--session <任务名>` 建立持续上下文；执行源码优先通过 UTF-8 stdin 传给 `run -`，避免 Windows `.bat -c` 的引号处理。PowerShell 先设 `$OutputEncoding = [Text.UTF8Encoding]::new($false)`，再用单引号 here-string 管道传源码（见 README）。`run -` 的 `input()` 收到 EOF；交互用文件或 REPL。
+2. 用 `--session <任务名>` 建立持续上下文；执行源码优先通过 UTF-8 stdin 传给 `run -`，避免 Windows `.bat -c` 的引号处理。PowerShell 先设 `$OutputEncoding = [Text.UTF8Encoding]::new($false)`，再用单引号 here-string 管道传源码（见[终端使用说明](cli.md)）。`run -` 的 `input()` 收到 EOF；交互用文件或 REPL。
 3. `from graalweave import api`，用 `api.mods()` 查看准确的 Mod id 与版本；用 `api.classes('关键词', mod='id')` 或 `package='包名'` 找类。名称已知时加 `exact=True`；例如 `api.inspect('完整类名', query='成员名', kind='method', exact=True)`。默认输出精简；需要参数元数据、声明来源等才加 `detail=True`。通过 `next_offset` 翻页到 `None`。详见 [API Explorer](api-explorer.md)。
 4. `java.type('包名.类名')` 直接访问 Java；游戏对象访问封装到短小的 `client.call` 中。探索使用二进制类名，内部类写为 `Outer$Inner`。
 5. 可复用代码写成模块，import 一次后用 MCP `code`、REPL 或后续 `run -` 直接调用函数；一次性执行才用 `run FILE`。cwd 的 `__init__.py` 在会话首次执行前运行一次，可预先导入常用函数；切换目录不重跑，修改后 reset。通过 `print(client.call(snapshot))` 查看状态；位置可用 `str(p.position())`，职业和物品显式读取 ID。
