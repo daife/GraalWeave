@@ -87,7 +87,7 @@ subscription.close()
 
 包环境位于 `graalweave/python/venv`，源码路径为 `graalweave/python/src`。包管理使用同版 GraalPy，安装包之后重置会话。`env rebuild` 在游戏停止后重建 venv。第三方原生包以 GraalPy Windows 实际支持为准，CPython wheel 不能直接替代。`status` 报告实际 GraalPy 语言版本。
 
-接口只监听 `127.0.0.1`，按设计不使用令牌。脚本被视为可信本地代码，具有文件、网络和 Java 访问能力。协议见 [本机协议](protocol.md)，Agent 编程约定见 [Agent 工作方式](agent.md)。
+接口只监听 `127.0.0.1`，按设计不使用令牌。脚本被视为可信本地代码，具有文件、网络和 Java 访问能力。Agent 编程约定见 [Agent 工作方式](agent.md)。
 
 ## 运行时调用重定向与类 Mixin 效果
 

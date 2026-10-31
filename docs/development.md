@@ -18,4 +18,4 @@
 
 分别验证核心集成、CLI/MCP，以及从发布 JAR 自动释放工具、初始化环境、保留用户文件和清理旧依赖的完整流程。前两项可加 `-PcoreOnly`，仅配置运行时和 CLI。
 
-协议细节见 [本机协议](protocol.md)，Agent 编程约定见 [Agent 工作方式](agent.md)，验证记录见 [验证说明](validation.md)。
+Agent 编程约定见 [Agent 工作方式](agent.md)。
