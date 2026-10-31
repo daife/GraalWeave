@@ -1,0 +1,13 @@
+.gradle/
+**/build/
+run/
+*.log
+__pycache__/
+.idea/
+
+# Local instructions and machine-specific configuration
+AGENTS.md
+.env
+.env.*
+*.local.properties
+.vscode/

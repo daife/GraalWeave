@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "graalweave",
+  "version": "${version}",
+  "name": "GraalWeave",
+  "description": "In-process Python and Java interoperability for local Minecraft agents.",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.graalweave.mod.GraalWeaveClient"] },
+  "depends": { "fabricloader": ">=0.20.1", "minecraft": "26.3", "java": ">=25", "fabric-api": "*" }
+}

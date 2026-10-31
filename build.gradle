@@ -1,0 +1,22 @@
+plugins { id 'base' }
+allprojects {
+    group = 'dev.graalweave'
+    version = '0.1.0'
+    repositories { mavenCentral() }
+}
+subprojects {
+    apply plugin: 'java'
+    java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
+    tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 25 }
+}
+tasks.register('offlineZip', Zip) {
+    dependsOn ':mod:build', ':cli:installDist'
+    archiveFileName = "GraalWeave-${version}-windows-x64.zip"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from('cli/build/install/graalweave') { into 'graalweave' }
+    from('mod/build/libs') { include 'graalweave-*.jar'; into 'mods' }
+    from('examples') { into 'examples' }
+    from('docs') { into 'docs' }
+    from('README.md')
+    from('scripts/install.ps1')
+}

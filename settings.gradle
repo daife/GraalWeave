@@ -1,0 +1,6 @@
+pluginManagement {
+    repositories { maven { url = 'https://maven.fabricmc.net/' }; gradlePluginPortal(); mavenCentral() }
+}
+rootProject.name = 'GraalWeave'
+include 'core', 'cli'
+if (!providers.gradleProperty('coreOnly').isPresent()) include 'mod'

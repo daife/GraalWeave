@@ -1,0 +1,14 @@
+plugins { id 'java-library' }
+dependencies {
+    implementation 'com.google.code.gson:gson:2.13.2'
+    api "org.graalvm.polyglot:polyglot:${graalpyVersion}"
+    implementation "org.graalvm.python:python-embedding:${graalpyVersion}"
+    runtimeOnly "org.graalvm.polyglot:python:${graalpyVersion}"
+    runtimeOnly "org.graalvm.python:python-launcher:${graalpyVersion}"
+}
+tasks.register('integration', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.graalweave.core.IntegrationCheck'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

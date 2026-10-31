@@ -1,0 +1,24 @@
+plugins { id 'application' }
+dependencies {
+    implementation project(':core')
+    implementation 'com.google.code.gson:gson:2.13.2'
+    implementation 'org.jline:jline:3.30.6'
+}
+application {
+    mainClass = 'dev.graalweave.cli.Main'
+    applicationName = 'graalweave'
+    applicationDefaultJvmArgs = ['--enable-native-access=ALL-UNNAMED', '-Dfile.encoding=UTF-8']
+}
+tasks.named('startScripts') {
+    doLast {
+        windowsScript.text = windowsScript.text.replace('if defined JAVA_HOME goto findJavaFromJavaHome',
+                'if not defined JAVA_HOME if exist "%APP_HOME%\\java-home.txt" set /p JAVA_HOME=<"%APP_HOME%\\java-home.txt"\r\nif defined JAVA_HOME goto findJavaFromJavaHome')
+    }
+}
+
+tasks.register('integration', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.graalweave.cli.StdinCheck'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
